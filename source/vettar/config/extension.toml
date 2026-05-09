@@ -1,0 +1,15 @@
+[package]
+version = "0.1.0"
+title = "Vettar Quadruped"
+description = "Isaac Lab tasks and assets for the Vettar quadruped robot."
+repository = ""
+category = "robotics"
+keywords = ["isaaclab", "quadruped", "vettar", "rl", "locomotion"]
+
+[dependencies]
+"isaaclab" = {}
+"isaaclab_assets" = {}
+"isaaclab_tasks" = {}
+
+[[python.module]]
+name = "vettar"

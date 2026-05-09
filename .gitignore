@@ -1,0 +1,26 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Isaac Lab 산출물
+logs/
+outputs/
+*.usd.bak
+*.urdf.bak
+
+# IDE
+.idea/
+.vscode/
+.DS_Store
+
+# OMC runtime state
+.omc/
+
+# Backup files
+*.bak
+*.original

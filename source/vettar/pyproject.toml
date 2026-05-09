@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vettar"
+version = "0.1.0"
+description = "Isaac Lab tasks and assets for the Vettar quadruped robot."
+requires-python = ">=3.10"
+license = {text = "BSD-3-Clause"}
+authors = [{name = "Vettar Project"}]
+keywords = ["isaaclab", "quadruped", "vettar", "rl", "locomotion"]
+
+# Isaac Lab 자체는 별도 설치 (pip install isaacsim + isaaclab.sh -i).
+# 여기선 외부 의존성만 선언.
+dependencies = [
+    "torch",
+    "numpy",
+    "gymnasium",
+]
+
+[tool.setuptools.packages.find]
+include = ["vettar*"]
+exclude = ["tests*"]
