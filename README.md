@@ -1,6 +1,7 @@
 # vettar — Isaac Lab 4족보행 외부 프로젝트
 
-NVIDIA Isaac Lab 의 **External Project Template** 구조로 패키징된 Vettar 4족보행 로봇 RL 환경입니다.
+NVIDIA Isaac Lab 의 **External Project** 구조로 패키징된 Vettar 4족보행 로봇 RL 환경입니다.
+(Isaac Lab 본체에 내장된 `isaaclab.bat --new` 템플릿 생성기에서 External 모드로 뽑은 표준 레이아웃을 따릅니다.)
 Isaac Lab 본 리포지토리에 손대지 않고도 본 프로젝트 폴더 하나로 학습/재생/자산 변환을 수행할 수 있습니다.
 
 > 원본 작업 위치: `C:\IsaacLab\source\isaaclab_*\...\vettar\` 내부 + 루트 유틸 스크립트들.
@@ -13,41 +14,49 @@ Isaac Lab 본 리포지토리에 손대지 않고도 본 프로젝트 폴더 하
 ```
 vettar_isaaclab/
 ├── README.md
-├── pyproject.toml (... 루트 메타는 source/vettar 가 보유)
-├── .gitignore
-├── scripts/                       # 진입점 스크립트
-│   ├── train.py                   # rsl_rl PPO 학습
-│   ├── play.py                    # 학습 정책 재생
-│   ├── smoke_test.py              # 패키지+USD 로드 빠른 검증 (~30s)
-│   ├── preview_pose.py            # omni.ui 슬라이더로 관절 자세 탐색
-│   ├── check_pose.py              # 물리 ON 안착 검사
-│   ├── regen_usd.py               # URDF → USD 재변환
-│   ├── scale_mass.py              # URDF 총 질량 스케일
-│   ├── inspect_usd.py             # USD joint limit 덤프
-│   └── inspect_usd_axes.py        # USD 회전축/localRot 덤프
+├── .gitignore                       # logs/, outputs/, .venv 등 학습 산출물 제외
+├── scripts/                         # 진입점 스크립트
+│   ├── train.py                     # rsl_rl PPO 학습
+│   ├── play.py                      # 학습 정책 재생
+│   ├── smoke_test.py                # 패키지+USD 로드 빠른 검증 (~30s)
+│   ├── preview_pose.py              # omni.ui 슬라이더로 관절 자세 탐색
+│   ├── check_pose.py                # 물리 ON 안착 검사
+│   ├── regen_usd.py                 # URDF → USD 재변환
+│   ├── scale_mass.py                # URDF 총 질량 스케일
+│   ├── inspect_usd.py               # USD joint limit 덤프
+│   └── inspect_usd_axes.py          # USD 회전축/localRot 덤프
 ├── source/
-│   └── vettar/                    # pip 설치 가능한 Extension 패키지
+│   └── vettar/                      # pip 설치 가능한 Extension 패키지
 │       ├── pyproject.toml
 │       ├── setup.py
 │       ├── config/
-│       │   └── extension.toml     # Omniverse Extension 메타데이터
-│       └── vettar/                # 실제 import 되는 Python 패키지
-│           ├── __init__.py        # VETTAR_PROJECT_ROOT, VETTAR_RESOURCES_DIR 노출
+│       │   └── extension.toml       # Omniverse Extension 메타데이터
+│       └── vettar/                  # 실제 import 되는 Python 패키지
+│           ├── __init__.py          # VETTAR_PROJECT_ROOT, VETTAR_RESOURCES_DIR 노출
 │           ├── assets/
-│           │   └── vettar.py      # ArticulationCfg + ImplicitActuatorCfg
+│           │   └── vettar.py        # ArticulationCfg + ImplicitActuatorCfg
 │           └── tasks/direct/vettar_locomotion/
-│               ├── __init__.py    # gym.register("Isaac-Vettar-Flat-Direct-v0")
+│               ├── __init__.py      # gym.register("Isaac-Vettar-Flat-Direct-v0")
 │               ├── vettar_env.py
 │               ├── vettar_env_cfg.py
 │               └── agents/
 │                   └── rsl_rl_ppo_cfg.py
 └── resources/
-    └── vettar_description/
-        ├── urdf/vettar.urdf       # 통합 URDF (실로봇 + Isaac 공용)
-        ├── usd/vettar.usd         # Isaac 용 변환 결과
-        ├── usd/config.yaml        # UrdfConverter 파라미터
-        └── meshes/*.STL           # 시각/충돌 메쉬 (16MB)
+    ├── vettar_description/          # 로봇 자산
+    │   ├── urdf/vettar.urdf         # 통합 URDF (실로봇 + Isaac 공용)
+    │   ├── usd/vettar.usd           # Isaac 용 변환 결과
+    │   ├── usd/config.yaml          # UrdfConverter 파라미터
+    │   └── meshes/*.STL             # 시각/충돌 메쉬
+    └── policies/                    # 사전 학습된 정책 (외부 추론/실로봇용)
+        └── vettar_flat_<timestamp>/
+            ├── policy.pt            # TorchScript 추론 정책
+            ├── policy.onnx          # 동일 정책의 ONNX
+            ├── env.yaml             # 학습 시점의 환경 설정
+            ├── agent.yaml           # PPO 하이퍼파라미터
+            └── README.md            # 해당 정책 메타 정보
 ```
+
+`logs/`, `outputs/` 는 `.gitignore` 로 제외되며, 학습 시점에 자동 생성됩니다.
 
 ---
 
@@ -122,17 +131,48 @@ isaaclab -p scripts/inspect_usd.py          # 결과 검증
 # 짧게 발광 체크
 isaaclab -p scripts/train.py --num_envs 16 --max_iterations 10 --headless
 
-# 본격 학습
-isaaclab -p scripts/train.py --num_envs 4096 --max_iterations 1500 --headless
+# 본격 학습 (예: 3000 iter)
+isaaclab -p scripts/train.py --num_envs 4096 --max_iterations 3000 --headless
 ```
 
-학습 결과는 `logs/rsl_rl/vettar_flat/<timestamp>/` 에 저장.
+학습 결과는 `logs/rsl_rl/vettar_flat/<timestamp>/` 에 저장 (커밋되지 않음):
+- `model_*.pt` — `save_interval` (기본 50) 마다 저장되는 체크포인트
+- `exported/policy.pt`, `policy.onnx` — 학습 종료 후 추론용으로 내보낸 정책
+- `params/env.yaml`, `agent.yaml` — 학습 시점 설정 스냅샷
+- `events.out.tfevents.*` — TensorBoard 로그
 
-### 5) 학습된 정책 재생
+### 5) 학습된 정책 재생 (직접 학습한 경우)
 
 ```powershell
-isaaclab -p scripts/play.py --num_envs 16 --checkpoint model_1500.pt
+# 가장 최근 런의 가장 큰 iter 체크포인트 자동 선택 (기본 패턴 model_.*.pt)
+isaaclab -p scripts/play.py --num_envs 16
+
+# 특정 체크포인트 지정
+isaaclab -p scripts/play.py --num_envs 16 --checkpoint model_2999.pt
+
+# 특정 런 + 체크포인트 지정
+isaaclab -p scripts/play.py --num_envs 16 --load_run 2026-04-24_13-24-40 --checkpoint model_2999.pt
 ```
+
+> `play.py` 는 `logs/rsl_rl/vettar_flat/<load_run>/<checkpoint>` 에서 **rsl_rl 체크포인트**(`model_*.pt`)를 읽습니다.
+> 동봉된 `resources/policies/.../policy.pt` 는 **TorchScript 로 내보낸 추론 전용 포맷**이라 `play.py` 가 그대로 못 읽습니다 — 다음 섹션 참고.
+
+### 6) 동봉된 사전 학습 정책 사용
+
+이 리포에는 한 번 학습이 끝난 정책이 함께 들어있습니다:
+
+```
+resources/policies/vettar_flat_2026-04-24_13-24-40/
+├── policy.pt      # TorchScript (PyTorch 추론)
+├── policy.onnx    # ONNX (C++/ROS2/엣지 런타임)
+├── env.yaml       # 어떤 환경에서 학습됐는지
+├── agent.yaml     # PPO 하이퍼파라미터
+└── README.md      # 학습 요약
+```
+
+**용도**:
+- 실로봇 / 외부 추론 노드에서 그대로 로드해 추론 (관측 차원·스케일은 `env.yaml` 과 동일해야 함).
+- Isaac Lab 안의 `play.py` 로 재생하고 싶으면, 해당 폴더의 체크포인트(`model_*.pt`)가 필요하므로 본인이 다시 학습해서 `logs/` 를 채우는 것이 가장 깔끔합니다.
 
 ---
 
